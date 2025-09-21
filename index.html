@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EstudioPro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/date-fns/cdn.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2563EB">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="EstudioPro">
+    <link rel="apple-touch-icon" href="images/icon-192x192.png">
+
+    <style>
+        :root {
+            --background: #F8F7F4; --foreground: #FFFFFF; --card: #FFFFFF; --text-primary: #333333; --text-secondary: #6B7280; --border: #E5E7EB; --primary: #2563EB; --primary-foreground: #FFFFFF; --accent: #E9E8E5; --danger: #EF4444;
+        }
+        [data-theme="dark"] {
+            --background: #111827; --foreground: #1F2937; --card: #1F2937; --text-primary: #F9FAFB; --text-secondary: #9CA3AF; --border: #374151; --primary: #3B82F6; --primary-foreground: #FFFFFF; --accent: #374151; --danger: #F87171;
+        }
+        [data-theme="ocean"] {
+            --background: #EFF6FF; --foreground: #FFFFFF; --card: #FFFFFF; --text-primary: #1E3A8A; --text-secondary: #3B82F6; --border: #BFDBFE; --primary: #1D4ED8; --primary-foreground: #FFFFFF; --accent: #DBEAFE; --danger: #FB7185;
+        }
+        [data-theme="forest"] {
+            --background: #F0FFF4; --foreground: #FFFFFF; --card: #FFFFFF; --text-primary: #14532D; --text-secondary: #16A34A; --border: #BBF7D0; --primary: #15803D; --primary-foreground: #FFFFFF; --accent: #D1FAE5; --danger: #FB7185;
+        }
+        body { font-family: 'Inter', sans-serif; background-color: var(--background); color: var(--text-primary); }
+        .nav-item { transition: all 0.2s ease-in-out; }
+        .nav-item.active, .nav-item:hover { background-color: var(--accent); color: var(--primary); }
+        .task-item.completed { text-decoration: line-through; opacity: 0.6; }
+        .calendar-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+        .calendar-day.has-event { background-color: var(--accent); font-weight: bold; color: var(--primary); position: relative; }
+        .calendar-day.has-event::after { content: ''; position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); width: 5px; height: 5px; border-radius: 50%; background-color: var(--primary); }
+        .modal { display: none; }
+        .modal.is-open { display: flex; }
+        .chart-container { position: relative; width: 100%; height: 450px; max-height: 60vh; }
+        .priority-badge { font-size: 0.75rem; font-weight: 600; padding: 2px 8px; border-radius: 9999px; text-transform: uppercase; }
+        .priority-1 { background-color: #D1FAE5; color: #065F46; } .priority-2 { background-color: #DBEAFE; color: #1E40AF; } .priority-3 { background-color: #FEF3C7; color: #92400E; } .priority-4 { background-color: #FEE2E2; color: #991B1B; } .priority-5 { background-color: #E11D48; color: #FFFFFF; }
+        .emotion-btn { transition: transform 0.2s; }
+        .emotion-btn:hover { transform: scale(1.1); }
+        .emotion-btn.selected { outline: 2px solid var(--primary); box-shadow: 0 0 10px rgba(var(--primary), 0.5); transform: scale(1.1); }
+        .control-btn.active { background-color: var(--primary); color: var(--primary-foreground); }
+        #install-pwa-button { display: none; } /* Ocultar por defecto */
+    </style>
+</head>
+<body class="flex flex-col md:flex-row h-screen bg-[var(--background)] text-[var(--text-primary)]">
+
+    <nav class="w-full md:w-64 bg-[var(--foreground)] border-b md:border-r border-[var(--border)] flex-shrink-0">
+        <div class="flex items-center justify-between p-4 h-16">
+            <h1 class="text-xl font-bold text-[var(--primary)]">EstudioPro</h1>
+            <button id="mobile-menu-button" class="md:hidden p-2 rounded-md hover:bg-[var(--accent)]"><svg xmlns="http://www.w.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" /></svg></button>
+        </div>
+        <div id="nav-menu" class="hidden md:flex flex-col justify-between h-full md:h-auto pb-4 md:pb-0">
+            <div class="p-2 space-y-1">
+                <a href="#" data-section="panel" class="nav-item active flex items-center gap-3 p-3 rounded-lg font-medium"><span>📊</span> Panel</a>
+                <a href="#" data-section="tareas" class="nav-item flex items-center gap-3 p-3 rounded-lg font-medium"><span>📝</span> Tareas</a>
+                <a href="#" data-section="calendario" class="nav-item flex items-center gap-3 p-3 rounded-lg font-medium"><span>📅</span> Calendario</a>
+                <a href="#" data-section="calificaciones" class="nav-item flex items-center gap-3 p-3 rounded-lg font-medium"><span>🎓</span> Calificaciones</a>
+                <a href="#" data-section="social" class="nav-item flex items-center gap-3 p-3 rounded-lg font-medium"><span>🧑‍🤝‍🧑</span> Bienestar Social</a>
+                <a href="#" data-section="analisis" class="nav-item flex items-center gap-3 p-3 rounded-lg font-medium"><span>📈</span> Análisis</a>
+            </div>
+            <div class="p-4 mt-auto">
+                 <button id="install-pwa-button" class="w-full mb-4 bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:opacity-90 transition">Instalar App</button>
+                <h4 class="text-sm font-semibold text-[var(--text-secondary)] mb-2">Temas</h4>
+                <div class="flex justify-around">
+                    <button class="theme-btn h-8 w-8 rounded-full bg-[#F8F7F4] border-2 border-[var(--border)]" data-theme="light"></button>
+                    <button class="theme-btn h-8 w-8 rounded-full bg-[#111827] border-2 border-[var(--border)]" data-theme="dark"></button>
+                    <button class="theme-btn h-8 w-8 rounded-full bg-[#EFF6FF] border-2 border-[var(--border)]" data-theme="ocean"></button>
+                    <button class="theme-btn h-8 w-8 rounded-full bg-[#F0FFF4] border-2 border-[var(--border)]" data-theme="forest"></button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+        <section id="panel" class="content-section">
+            <h2 class="text-3xl font-bold mb-6">Panel Principal</h2>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2 space-y-6">
+                    <div class="bg-[var(--card)] p-6 rounded-xl shadow-sm border border-[var(--border)]">
+                        <h3 class="text-xl font-semibold mb-4">¿Cómo te sientes hoy? (General)</h3>
+                        <div id="emotion-tracker" class="flex justify-around items-center mb-4">
+                            <button class="emotion-btn text-4xl" data-emotion="Feliz" title="Feliz">😊</button>
+                            <button class="emotion-btn text-4xl" data-emotion="Concentrado" title="Concentrado">🤓</button>
+                            <button class="emotion-btn text-4xl" data-emotion="Cansado" title="Cansado">😴</button>
+                            <button class="emotion-btn text-4xl" data-emotion="Estresado" title="Estresado">😫</button>
+                            <button class="emotion-btn text-4xl" data-emotion="Triste" title="Triste">😢</button>
+                        </div>
+                        <input type="text" id="emotion-note" class="w-full border border-[var(--border)] rounded-md py-2 px-3 bg-[var(--foreground)]" placeholder="Añade una nota (opcional)...">
+                        <button id="save-emotion-btn" class="w-full mt-3 bg-[var(--primary)] text-[var(--primary-foreground)] font-bold py-2 px-4 rounded-lg hover:opacity-90 transition">Guardar Emoción</button>
+                    </div>
+                     <div class="bg-[var(--card)] p-6 rounded-xl shadow-sm border border-[var(--border)]">
+                        <h3 class="text-xl font-semibold mb-4">Tareas Próximas</h3>
+                        <div id="upcoming-tasks-list" class="space-y-3"></div>
+                    </div>
+                </div>
+                <div class="space-y-6">
+                    <div class="bg-[var(--card)] p-6 rounded-xl shadow-sm border border-[var(--border)]">
+                        <h3 class="text-xl font-semibold mb-4">Próximos Eventos</h3>
+                        <div id="upcoming-events-list" class="space-y-3"></div>
+                    </div>
+                    <div class="bg-[var(--card)] p-6 rounded-xl shadow-sm border border-[var(--border)]">
+                        <h3 class="text-xl font-semibold mb-2">Promedio General</h3>
+                        <p id="general-average" class="text-4xl font-bold text-[var(--primary)]"></p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="tareas" class="content-section hidden">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                <div><h2 class="text-3xl font-bold">Gestor de Tareas</h2><p class="text-md text-[var(--text-secondary)] mt-1 max-w-2xl">Organiza tus tareas, asigna prioridades y mantente al día.</p></div>
+                <button id="add-task-btn" class="bg-[var(--primary)] text-[var(--primary-foreground)] font-bold py-2 px-4 rounded-lg hover:opacity-90 transition w-full sm:w-auto">Añadir Tarea</button>
+            </div>
+            <div id="task-list" class="bg-[var(--card)] p-6 rounded-xl shadow-sm border border-[var(--border)]"></div>
+        </section>
+
+        <section id="calendario" class="content-section hidden">
+             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                <div><h2 class="text-3xl font-bold">Calendario Académico</h2><p class="text-md text-[var(--text-secondary)] mt-1 max-w-2xl">Visualiza fechas importantes y planifica tu tiempo.</p></div>
+                <button id="add-event-btn" class="bg-[var(--primary)] text-[var(--primary-foreground)] font-bold py-2 px-4 rounded-lg hover:opacity-90 transition w-full sm:w-auto">Añadir Evento</button>
+            </div>
+            <div class="bg-[var(--card)] p-6 rounded-xl shadow-sm border border-[var(--border)]">
+                <div class="flex justify-between items-center mb-4">
+                    <button id="prev-month" class="p-2 rounded-full hover:bg-[var(--accent)]">◀</button>
+                    <h3 id="month-year" class="text-xl font-semibold"></h3>
+                    <button id="next-month" class="p-2 rounded-full hover:bg-[var(--accent)]">▶</button>
+                </div>
+                <div class="grid calendar-grid font-semibold text-center text-[var(--text-secondary)] mb-2"><div>Do</div><div>Lu</div><div>Ma</div><div>Mi</div><div>Ju</div><div>Vi</div><div>Sá</div></div>
+                <div id="calendar-body" class="grid calendar-grid gap-1"></div>
+            </div>
+        </section>
+
+        <section id="calificaciones" class="content-section hidden">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                <div><h2 class="text-3xl font-bold">Registro de Calificaciones</h2><p class="text-md text-[var(--text-secondary)] mt-1 max-w-2xl">Lleva un control detallado de tus notas por asignatura.</p></div>
+                <button id="add-subject-btn" class="bg-[var(--primary)] text-[var(--primary-foreground)] font-bold py-2 px-4 rounded-lg hover:opacity-90 transition w-full sm:w-auto">Añadir Asignatura</button>
+            </div>
+            <div id="subjects-container" class="space-y-4"></div>
+        </section>
+
+        <section id="social" class="content-section hidden">
+            <h2 class="text-3xl font-bold mb-2">Bienestar Social</h2>
+            <p class="text-md text-[var(--text-secondary)] mb-6 max-w-3xl">Registra cómo te sientes con las personas importantes en tu vida.</p>
+
+            <div class="bg-[var(--card)] p-6 rounded-xl shadow-sm border border-[var(--border)] mb-6">
+                <h3 class="text-xl font-semibold mb-4">Gestionar Personas</h3>
+                <div class="flex flex-col sm:flex-row gap-4 items-center">
+                    <select id="person-select" class="flex-grow border border-[var(--border)] rounded-md py-2 px-3 bg-[var(--foreground)] w-full sm:w-auto"></select>
+                    <div class="flex gap-2 flex-shrink-0">
+                        <button id="add-person-btn" class="bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:opacity-90">Añadir</button>
+                        <button id="delete-person-btn" class="bg-[var(--danger)] text-white font-bold py-2 px-4 rounded-lg hover:opacity-90">Eliminar</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="social-content-area">
+                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="space-y-6">
+                         <div id="person-feeling-logger" class="bg-[var(--card)] p-6 rounded-xl shadow-sm border border-[var(--border)]">
+                            <h3 class="text-xl font-semibold mb-4">¿Cómo te sientes sobre <span id="tracked-person-name" class="text-[var(--primary)]">...</span>?</h3>
+                             <div id="person-emotion-tracker" class="flex justify-around items-center flex-wrap gap-4 mb-4">
+                                <button class="emotion-btn text-4xl" data-emotion="Feliz" title="Feliz">😊</button><button class="emotion-btn text-4xl" data-emotion="Agradecido" title="Agradecido">🥰</button><button class="emotion-btn text-4xl" data-emotion="Amado" title="Amado">😍</button><button class="emotion-btn text-4xl" data-emotion="Confundido" title="Confundido">🤔</button><button class="emotion-btn text-4xl" data-emotion="Enojado" title="Enojado">😠</button><button class="emotion-btn text-4xl" data-emotion="Triste" title="Triste">😢</button>
+                            </div>
+                            <input type="text" id="person-emotion-note" class="w-full border border-[var(--border)] rounded-md py-2 px-3 bg-[var(--foreground)]" placeholder="Añade una nota (opcional)...">
+                            <button id="save-person-emotion-btn" class="w-full mt-3 bg-[var(--primary)] text-[var(--primary-foreground)] font-bold py-2 px-4 rounded-lg hover:opacity-90">Guardar Sentimiento</button>
+                        </div>
+
+                        <div id="social-analysis-area" class="bg-[var(--card)] p-6 rounded-xl shadow-sm border border-[var(--border)]">
+                            <h3 class="text-xl font-semibold mb-4">Análisis con IA</h3>
+                            <div id="social-recommendations" class="text-sm space-y-2">
+                                <p class="text-[var(--text-secondary)]">Analizando datos...</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-[var(--card)] p-6 rounded-xl shadow-sm border border-[var(--border)]">
+                         <h3 class="text-xl font-semibold mb-4">Historial de Sentimientos</h3>
+                         <div id="person-feelings-history" class="space-y-3 max-h-[30rem] overflow-y-auto"></div>
+                    </div>
+                 </div>
+            </div>
+
+            <div id="no-social-content" class="text-center py-10 hidden">
+                <p class="text-lg text-[var(--text-secondary)]">Añade una persona para empezar a registrar tus sentimientos.</p>
+            </div>
+        </section>
+
+        <section id="analisis" class="content-section hidden">
+            <h2 class="text-3xl font-bold mb-2">Panel de Correlación</h2>
+            <p class="text-md text-[var(--text-secondary)] mb-6 max-w-4xl">
+                Visualiza la conexión entre tu estado de ánimo, relaciones, eventos académicos y calificaciones.
+            </p>
+            <div class="bg-[var(--card)] p-6 rounded-xl shadow-sm border border-[var(--border)]">
+                <div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
+                    <div id="correlation-chart-toggles" class="flex flex-wrap gap-2">
+                        <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" data-dataset="general" checked class="h-4 w-4 rounded"> Ánimo General</label>
+                        <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" data-dataset="social" checked class="h-4 w-4 rounded"> Sentimiento Social</label>
+                        <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" data-dataset="grades" checked class="h-4 w-4 rounded"> Calificaciones</label>
+                        <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" data-dataset="events" checked class="h-4 w-4 rounded"> Eventos Clave</label>
+                    </div>
+                    <div id="correlation-chart-ranges" class="flex-shrink-0">
+                        <button data-range="7" class="control-btn border border-[var(--border)] px-3 py-1 rounded-md text-sm">7d</button>
+                        <button data-range="30" class="control-btn active border border-[var(--border)] px-3 py-1 rounded-md text-sm">30d</button>
+                        <button data-range="90" class="control-btn border border-[var(--border)] px-3 py-1 rounded-md text-sm">90d</button>
+                        <button data-range="all" class="control-btn border border-[var(--border)] px-3 py-1 rounded-md text-sm">Todo</button>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="correlationChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <div id="task-modal" class="modal fixed inset-0 bg-black bg-opacity-50 items-center justify-center p-4 z-50">
+            <div class="bg-[var(--card)] rounded-xl shadow-xl p-6 w-full max-w-md border border-[var(--border)]">
+                <h3 id="task-modal-title" class="text-2xl font-bold mb-4"></h3>
+                <form id="task-form">
+                    <input type="hidden" id="task-id">
+                    <div class="mb-4"><label for="task-name" class="block text-sm font-medium text-[var(--text-secondary)]">Nombre</label><input type="text" id="task-name" class="mt-1 block w-full border border-[var(--border)] rounded-md py-2 px-3 bg-[var(--foreground)]" required></div>
+                    <div class="mb-4"><label for="task-subject" class="block text-sm font-medium text-[var(--text-secondary)]">Asignatura</label><input type="text" id="task-subject" class="mt-1 block w-full border border-[var(--border)] rounded-md py-2 px-3 bg-[var(--foreground)]" required></div>
+                    <div class="mb-4"><label for="task-due-date" class="block text-sm font-medium text-[var(--text-secondary)]">Fecha</label><input type="date" id="task-due-date" class="mt-1 block w-full border border-[var(--border)] rounded-md py-2 px-3 bg-[var(--foreground)]" required></div>
+                    <div class="mb-4"><label for="task-priority" class="block text-sm font-medium text-[var(--text-secondary)]">Prioridad</label><select id="task-priority" class="mt-1 block w-full border border-[var(--border)] rounded-md py-2 px-3 bg-[var(--foreground)]"><option value="5">5 - Muy Alta</option><option value="4">4 - Alta</option><option value="3" selected>3 - Media</option><option value="2">2 - Baja</option><option value="1">1 - Muy Baja</option></select></div>
+                    <div class="flex justify-end gap-3 mt-6"><button type="button" class="cancel-modal-btn bg-transparent border border-[var(--border)] text-[var(--text-primary)] font-bold py-2 px-4 rounded-lg hover:bg-[var(--accent)]">Cancelar</button><button type="submit" class="bg-[var(--primary)] text-[var(--primary-foreground)] font-bold py-2 px-4 rounded-lg">Guardar</button></div>
+                </form>
+            </div>
+        </div>
+        <div id="event-modal" class="modal fixed inset-0 bg-black bg-opacity-50 items-center justify-center p-4 z-50">
+            <div class="bg-[var(--card)] rounded-xl shadow-xl p-6 w-full max-w-md border border-[var(--border)]">
+                <h3 class="text-2xl font-bold mb-4">Añadir Evento</h3>
+                <form id="event-form">
+                    <div class="mb-4"><label for="event-title" class="block text-sm font-medium text-[var(--text-secondary)]">Título</label><input type="text" id="event-title" class="mt-1 block w-full border border-[var(--border)] rounded-md py-2 px-3 bg-[var(--foreground)]" required></div>
+                    <div class="mb-4"><label for="event-date" class="block text-sm font-medium text-[var(--text-secondary)]">Fecha</label><input type="date" id="event-date" class="mt-1 block w-full border border-[var(--border)] rounded-md py-2 px-3 bg-[var(--foreground)]" required></div>
+                    <div class="mb-4"><label for="event-type" class="block text-sm font-medium text-[var(--text-secondary)]">Tipo</label><select id="event-type" class="mt-1 block w-full border border-[var(--border)] rounded-md py-2 px-3 bg-[var(--foreground)]"><option value="examen">Examen</option><option value="entrega">Entrega</option><option value="recordatorio">Recordatorio</option></select></div>
+                    <div class="flex justify-end gap-3 mt-6"><button type="button" class="cancel-modal-btn bg-transparent border border-[var(--border)] text-[var(--text-primary)] font-bold py-2 px-4 rounded-lg hover:bg-[var(--accent)]">Cancelar</button><button type="submit" class="bg-[var(--primary)] text-[var(--primary-foreground)] font-bold py-2 px-4 rounded-lg">Guardar</button></div>
+                </form>
+            </div>
+        </div>
+        <div id="day-details-modal" class="modal fixed inset-0 bg-black bg-opacity-50 items-center justify-center p-4 z-50">
+            <div class="bg-[var(--card)] rounded-xl shadow-xl p-6 w-full max-w-md border border-[var(--border)]">
+                <div class="flex justify-between items-center mb-4"><h3 id="day-details-title" class="text-2xl font-bold"></h3><button id="close-day-details-btn" class="p-2 rounded-full hover:bg-[var(--accent)]">✖</button></div>
+                <div id="day-events-list" class="space-y-3"></div>
+            </div>
+        </div>
+        <div id="grade-modal" class="modal fixed inset-0 bg-black bg-opacity-50 items-center justify-center p-4 z-50">
+            <div class="bg-[var(--card)] rounded-xl shadow-xl p-6 w-full max-w-md border border-[var(--border)]">
+                <h3 class="text-2xl font-bold mb-4">Añadir Calificación</h3>
+                <form id="grade-form">
+                    <input type="hidden" id="grade-subject-id">
+                    <div class="mb-4"><label for="grade-name" class="block text-sm font-medium text-[var(--text-secondary)]">Descripción</label><input type="text" id="grade-name" placeholder="Ej: Examen Parcial 1" class="mt-1 block w-full border border-[var(--border)] rounded-md py-2 px-3 bg-[var(--foreground)]" required></div>
+                    <div class="mb-4"><label for="grade-score" class="block text-sm font-medium text-[var(--text-secondary)]">Calificación (0-100)</label><input type="number" id="grade-score" min="0" max="100" step="0.1" class="mt-1 block w-full border border-[var(--border)] rounded-md py-2 px-3 bg-[var(--foreground)]" required></div>
+                    <div class="flex justify-end gap-3 mt-6"><button type="button" class="cancel-modal-btn bg-transparent border border-[var(--border)] text-[var(--text-primary)] font-bold py-2 px-4 rounded-lg hover:bg-[var(--accent)]">Cancelar</button><button type="submit" class="bg-[var(--primary)] text-[var(--primary-foreground)] font-bold py-2 px-4 rounded-lg">Guardar</button></div>
+                </form>
+            </div>
+        </div>
+        <div id="add-person-modal" class="modal fixed inset-0 bg-black bg-opacity-50 items-center justify-center p-4 z-50">
+            <div class="bg-[var(--card)] rounded-xl shadow-xl p-6 w-full max-w-md border border-[var(--border)]">
+                <h3 class="text-2xl font-bold mb-4">Añadir Nueva Persona</h3>
+                <form id="add-person-form">
+                    <div class="mb-4"><label for="person-name-input" class="block text-sm font-medium text-[var(--text-secondary)]">Nombre</label><input type="text" id="person-name-input" class="mt-1 block w-full border border-[var(--border)] rounded-md py-2 px-3 bg-[var(--foreground)]" required></div>
+                    <div class="flex justify-end gap-3 mt-6"><button type="button" class="cancel-modal-btn bg-transparent border border-[var(--border)] text-[var(--text-primary)] font-bold py-2 px-4 rounded-lg hover:bg-[var(--accent)]">Cancelar</button><button type="submit" class="bg-[var(--primary)] text-[var(--primary-foreground)] font-bold py-2 px-4 rounded-lg">Guardar</button></div>
+                </form>
+            </div>
+        </div>
+        <div id="alert-modal" class="modal fixed inset-0 bg-black bg-opacity-50 items-center justify-center p-4 z-50">
+            <div class="bg-[var(--card)] rounded-xl shadow-xl p-6 w-full max-w-sm border border-[var(--border)] text-center">
+                <div id="alert-modal-icon" class="mx-auto mb-4 w-12 h-12 rounded-full flex items-center justify-center text-2xl"></div>
+                <h3 id="alert-modal-title" class="text-xl font-bold mb-2"></h3>
+                <p id="alert-modal-message" class="text-[var(--text-secondary)] mb-6"></p>
+                <button id="alert-modal-ok-btn" class="w-full bg-[var(--primary)] text-[var(--primary-foreground)] font-bold py-2 px-4 rounded-lg hover:opacity-90">Entendido</button>
+            </div>
+        </div>
+        <div id="confirm-delete-modal" class="modal fixed inset-0 bg-black bg-opacity-50 items-center justify-center p-4 z-50">
+            <div class="bg-[var(--card)] rounded-xl shadow-xl p-6 w-full max-w-sm border border-[var(--border)] text-center">
+                <div class="mx-auto mb-4 w-12 h-12 rounded-full flex items-center justify-center text-2xl bg-red-100 text-red-600">⚠️</div>
+                <h3 id="confirm-delete-title" class="text-xl font-bold mb-2">Confirmar Eliminación</h3>
+                <p id="confirm-delete-message" class="text-[var(--text-secondary)] mb-6"></p>
+                <div class="flex justify-center gap-4">
+                    <button id="confirm-delete-cancel-btn" class="flex-1 bg-transparent border border-[var(--border)] text-[var(--text-primary)] font-bold py-2 px-4 rounded-lg hover:bg-[var(--accent)]">Cancelar</button>
+                    <button id="confirm-delete-confirm-btn" class="flex-1 bg-[var(--danger)] text-white font-bold py-2 px-4 rounded-lg hover:opacity-90">Eliminar</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+    // --- CONFIGURACIÓN DE LA API DE IA ---
+    // 1. Obtén tu API Key de Google AI Studio.
+    // 2. Pégala aquí abajo.
+    const GEMINI_API_KEY = 'AIzaSyAYuEM1DXL3Lm5cRLlnRGfWtrVq4Vfnnc4';
+    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
+
+    // --- GESTIÓN DEL ESTADO ---
+    function saveState() {
+        localStorage.setItem('studyHubState', JSON.stringify(state));
+    }
+
+    function loadState() {
+        const savedState = localStorage.getItem('studyHubState');
+        let loaded = savedState ? JSON.parse(savedState) : null;
+
+        if (loaded && !loaded.people) {
+            loaded.people = [];
+            if (loaded.trackedPersonName || loaded.personFeelings) {
+                loaded.people.push({
+                    id: Date.now(),
+                    name: loaded.trackedPersonName || 'Persona Antigua',
+                    feelings: loaded.personFeelings || []
+                });
+                delete loaded.trackedPersonName;
+                delete loaded.personFeelings;
+            }
+        }
+
+        if (loaded && loaded.subjects) {
+            loaded.subjects.forEach(s => {
+                if (s.grades) {
+                    s.grades.forEach(g => { if (!g.timestamp) g.timestamp = new Date().toISOString(); });
+                }
+            });
+        }
+        
+        if (!loaded) {
+            const today = new Date(), nextWeek = new Date(today), yesterday = new Date(today);
+            nextWeek.setDate(today.getDate() + 7);
+            yesterday.setDate(today.getDate() - 1);
+            const formatDate = (d) => d.toISOString().split('T')[0];
+            return {
+                tasks: [{ id: 1, name: 'Ensayo Final', subject: 'Historia', dueDate: formatDate(nextWeek), completed: false, priority: 4 }],
+                events: [{ id: 1, title: 'Examen Parcial', date: formatDate(nextWeek), type: 'examen' }],
+                subjects: [{ id: 1, name: 'Historia', grades: [{ id: 1, name: 'Examen 1', score: 85, timestamp: yesterday.toISOString() }] }],
+                emotions: [{id: 1, emotion: 'Concentrado', note: 'Estudiando', timestamp: yesterday.toISOString()}],
+                people: [{id: 1, name: 'Alex', feelings: [{id: 1, feeling: 'Feliz', note: 'Salimos a cenar', timestamp: yesterday.toISOString()}]}],
+                selectedPersonId: 1,
+            };
+        }
+        return loaded;
+    }
+
+    // --- VARIABLES GLOBALES ---
+    let state = loadState();
+    let currentDate = new Date();
+    let correlationChartInstance;
+    let selectedGeneralEmotion, selectedPersonEmotion;
+
+    // --- SELECTORES DE ELEMENTOS DEL DOM ---
+    const sections = document.querySelectorAll('.content-section');
+    const navItems = document.querySelectorAll('.nav-item');
+    const modals = {
+        task: document.getElementById('task-modal'),
+        grade: document.getElementById('grade-modal'),
+        event: document.getElementById('event-modal'),
+        dayDetails: document.getElementById('day-details-modal'),
+        addPerson: document.getElementById('add-person-modal'),
+        alert: document.getElementById('alert-modal'),
+        confirmDelete: document.getElementById('confirm-delete-modal')
+    };
+    const navMenu = document.getElementById('nav-menu');
+
+    // --- FUNCIONES PRINCIPALES DE RENDERIZADO ---
+    
+    function renderAll() {
+        renderDashboard();
+        renderTasks();
+        renderCalendar();
+        renderSubjects();
+        renderSocial();
+    }
+
+    function showSection(sectionId) {
+        sections.forEach(section => section.classList.toggle('hidden', section.id !== sectionId));
+        navItems.forEach(item => item.classList.toggle('active', item.dataset.section === sectionId));
+        if (sectionId === 'analisis') renderCorrelationChart();
+    }
+    
+    // --- RENDERIZADO DE COMPONENTES ---
+
+    function renderDashboard() {
+        const upcomingTasksList = document.getElementById('upcoming-tasks-list');
+        const upcomingEventsList = document.getElementById('upcoming-events-list');
+        const generalAverageEl = document.getElementById('general-average');
+        const today = new Date(); today.setHours(0,0,0,0);
+        const upcomingTasks = state.tasks.filter(t => !t.completed && new Date(t.dueDate + 'T00:00:00') >= today).sort((a, b) => b.priority - a.priority || new Date(a.dueDate) - new Date(b.dueDate)).slice(0, 5);
+        upcomingTasksList.innerHTML = upcomingTasks.length ? upcomingTasks.map(task => `<div class="flex items-center justify-between p-3 bg-[var(--accent)] rounded-lg"><div><p class="font-semibold">${task.name}</p><p class="text-sm text-[var(--text-secondary)]">${task.subject}</p></div><span class="priority-badge priority-${task.priority}">${task.priority}</span></div>`).join('') : `<p class="text-[var(--text-secondary)]">No tienes tareas próximas.</p>`;
+        const upcomingEvents = state.events.filter(e => new Date(e.date + 'T00:00:00') >= today).sort((a,b) => new Date(a.date) - new Date(b.date)).slice(0, 5);
+        upcomingEventsList.innerHTML = upcomingEvents.length ? upcomingEvents.map(event => `<div class="p-3 bg-[var(--accent)] rounded-lg"><p class="font-semibold">${event.title}</p><p class="text-sm text-[var(--text-secondary)]">${new Date(event.date + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}</p></div>`).join('') : `<p class="text-[var(--text-secondary)]">No hay eventos próximos.</p>`;
+        let totalScore = 0, totalGrades = 0;
+        state.subjects.forEach(s => s.grades.forEach(g => { totalScore += g.score; totalGrades++; }));
+        generalAverageEl.textContent = totalGrades > 0 ? (totalScore / totalGrades).toFixed(2) : 'N/A';
+    }
+
+    function renderTasks() {
+        const c = document.getElementById('task-list');
+        if (!state.tasks.length) { c.innerHTML = '<p class="text-center text-[var(--text-secondary)] py-8">No hay tareas.</p>'; return; }
+        const getPriorityText = (p) => ({ 5: 'Muy Alta', 4: 'Alta', 3: 'Media', 2: 'Baja', 1: 'Muy Baja' }[p] || '');
+        const sorted = [...state.tasks].sort((a, b) => a.completed - b.completed || b.priority - a.priority || new Date(a.dueDate) - new Date(b.dueDate));
+        c.innerHTML = `<div class="space-y-4">${sorted.map(t => `<div class="task-item ${t.completed ? 'completed' : ''} flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border border-[var(--border)] rounded-lg gap-3">
+            <div class="flex items-center gap-4 flex-grow"><input type="checkbox" class="task-checkbox h-5 w-5" data-id="${t.id}" ${t.completed ? 'checked' : ''}><div><p class="font-semibold text-lg">${t.name}</p><div class="flex items-center gap-3 mt-1"><span class="priority-badge priority-${t.priority}">${getPriorityText(t.priority)}</span><p class="text-sm text-[var(--text-secondary)]">${t.subject} | Vence: ${new Date(t.dueDate + 'T00:00:00').toLocaleDateString()}</p></div></div></div>
+            <div class="flex gap-2 self-end sm:self-center"><button class="edit-task-btn p-2" data-id="${t.id}">✏️</button><button class="delete-task-btn p-2" data-id="${t.id}">🗑️</button></div></div>`).join('')}</div>`;
+    }
+
+    function renderCalendar() {
+        const body = document.getElementById('calendar-body'), monthYearEl = document.getElementById('month-year');
+        body.innerHTML = '';
+        const year = currentDate.getFullYear(), month = currentDate.getMonth();
+        monthYearEl.textContent = currentDate.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+        const firstDay = new Date(year, month, 1).getDay(), daysInMonth = new Date(year, month + 1, 0).getDate();
+        for (let i = 0; i < firstDay; i++) body.innerHTML += '<div></div>';
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const isToday = new Date(year, month, day).toDateString() === new Date().toDateString();
+            let classes = `calendar-day text-center p-2 rounded-lg cursor-pointer hover:bg-[var(--accent)] ${state.events.some(e => e.date === dateStr) ? 'has-event' : ''} ${isToday ? 'bg-[var(--primary)] text-[var(--primary-foreground)] hover:!bg-[var(--primary)]' : ''}`;
+            body.innerHTML += `<div class="${classes}" data-date="${dateStr}">${day}</div>`;
+        }
+    }
+    
+    function renderSubjects() {
+        const c = document.getElementById('subjects-container');
+        if(!state.subjects.length) { c.innerHTML = '<p class="text-center text-[var(--text-secondary)] py-8">No hay asignaturas.</p>'; return; }
+        c.innerHTML = state.subjects.map(s => {
+            const avg = s.grades.length ? (s.grades.reduce((a, g) => a + g.score, 0) / s.grades.length).toFixed(2) : 'N/A';
+            return `<div class="bg-[var(--card)] rounded-xl shadow-sm overflow-hidden border border-[var(--border)]"><div class="p-4 border-b flex justify-between items-center gap-3"><div><h4 class="text-xl font-bold">${s.name}</h4><p class="text-[var(--text-secondary)]">Promedio: <span class="font-semibold text-[var(--primary)]">${avg}</span></p></div><div class="flex gap-2"><button class="add-grade-btn bg-green-500 text-white text-sm font-bold py-1 px-3 rounded-full" data-subject-id="${s.id}">+ Nota</button><button class="delete-subject-btn text-[var(--danger)] text-sm font-bold py-1 px-3 rounded-full" data-subject-id="${s.id}">Eliminar</button></div></div><div class="p-4">${s.grades.length ? `<ul class="space-y-2">${s.grades.map(g => `<li class="flex justify-between items-center"><span>${g.name}</span><span class="font-bold">${g.score}</span></li>`).join('')}</ul>` : '<p>No hay notas.</p>'}</div></div>`;
+        }).join('');
+    }
+
+    // --- SECCIÓN DE BIENESTAR SOCIAL ---
+    
+    async function generateAiRecommendation(person) {
+        const recommendationsEl = document.getElementById('social-recommendations');
+        recommendationsEl.innerHTML = `<p class="text-[var(--text-secondary)]">🧠 Analizando con IA...</p>`;
+
+        if (GEMINI_API_KEY === 'AQUI_VA_TU_API_KEY') {
+            recommendationsEl.innerHTML = `<p class="text-yellow-500">⚠️ Configura tu API Key de Gemini en el código para activar las recomendaciones por IA.</p>`;
+            return;
+        }
+
+        if (!person || !person.feelings || person.feelings.length < 3) {
+            recommendationsEl.innerHTML = `<p class="text-[var(--text-secondary)]">Registra al menos 3 sentimientos con ${person.name} para recibir un análisis.</p>`;
+            return;
+        }
+
+        const feelingsSummary = person.feelings.map(f => {
+            return `El ${new Date(f.timestamp).toLocaleDateString('es-ES')}, sentí '${f.feeling}'` + (f.note ? ` (nota: "${f.note}").` : '.');
+        }).join('\n');
+
+        const prompt = `
+            Eres un asistente de inteligencia emocional y relaciones personales. Analiza el siguiente historial de sentimientos que un usuario ha registrado sobre una persona llamada "${person.name}". Basado en estos datos, proporciona un consejo breve (máximo 3 frases), constructivo y empático. No uses un tono alarmista. Sé directo y útil.
+
+            Historial de sentimientos con ${person.name}:
+            ${feelingsSummary}
+
+            Ofrece tu consejo aquí:
+        `;
+
+        try {
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }]
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`Error de la API: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            const recommendation = data.candidates[0].content.parts[0].text;
+            recommendationsEl.innerHTML = `<p>${recommendation}</p>`;
+
+        } catch (error) {
+            console.error("Error al contactar la API de Gemini:", error);
+            recommendationsEl.innerHTML = `<p class="text-[var(--danger)]">No se pudo obtener la recomendación de la IA. Intenta más tarde.</p>`;
+        }
+    }
+    
+    function renderSocial() {
+        const personSelect = document.getElementById('person-select');
+        const historyContainer = document.getElementById('person-feelings-history');
+        const trackedPersonNameEl = document.getElementById('tracked-person-name');
+        const contentArea = document.getElementById('social-content-area');
+        const noContentArea = document.getElementById('no-social-content');
+        
+        personSelect.innerHTML = state.people.map(p => `<option value="${p.id}" ${p.id === state.selectedPersonId ? 'selected' : ''}>${p.name}</option>`).join('');
+
+        const selectedPerson = state.people.find(p => p.id === state.selectedPersonId);
+
+        if (selectedPerson) {
+            contentArea.classList.remove('hidden');
+            noContentArea.classList.add('hidden');
+            trackedPersonNameEl.textContent = selectedPerson.name;
+            const sortedFeelings = [...selectedPerson.feelings].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            historyContainer.innerHTML = sortedFeelings.length ? 
+                sortedFeelings.map(f => `<div class="p-3 bg-[var(--accent)] rounded-lg"><div class="flex justify-between"><p class="font-semibold">${f.feeling}</p><p class="text-sm">${new Date(f.timestamp).toLocaleDateString()}</p></div>${f.note ? `<p class="text-sm mt-1 italic">"${f.note}"</p>` : ''}</div>`).join('') : 
+                `<p class="text-center py-4">No hay registros para ${selectedPerson.name}.</p>`;
+            
+            generateAiRecommendation(selectedPerson);
+
+        } else {
+            contentArea.classList.add('hidden');
+            noContentArea.classList.remove('hidden');
+        }
+    }
+
+    // --- GRÁFICO DE CORRELACIÓN ---
+    function renderCorrelationChart() {
+        const ctx = document.getElementById('correlationChart').getContext('2d');
+        if (correlationChartInstance) correlationChartInstance.destroy();
+
+        const rootStyles = getComputedStyle(document.documentElement);
+        const textColor = rootStyles.getPropertyValue('--text-primary').trim();
+        const range = document.querySelector('#correlation-chart-ranges button.active').dataset.range;
+        const endDate = new Date();
+        let startDate;
+
+        if (range === 'all') {
+            const allTimestamps = [
+                ...state.emotions.map(e => new Date(e.timestamp)),
+                ...state.people.flatMap(p => p.feelings.map(f => new Date(f.timestamp))),
+                ...state.subjects.flatMap(s => s.grades.map(g => new Date(g.timestamp)))
+            ].filter(d => !isNaN(d));
+            startDate = allTimestamps.length ? new Date(Math.min.apply(null, allTimestamps)) : dateFns.subDays(endDate, 30);
+        } else {
+            startDate = dateFns.subDays(endDate, parseInt(range));
+        }
+
+        const filterByDate = (item) => dateFns.isWithinInterval(new Date(item.timestamp || item.date), { start: startDate, end: endDate });
+        const generalEmotionMap = { 'Triste': 1, 'Estresado': 2, 'Cansado': 3, 'Concentrado': 4, 'Feliz': 5 };
+        const socialFeelingMap = { 'Triste': 1, 'Enojado': 2, 'Confundido': 3, 'Feliz': 4, 'Agradecido': 5, 'Amado': 6 };
+        const selectedPerson = state.people.find(p => p.id === state.selectedPersonId);
+        const socialFeelingsData = selectedPerson ? selectedPerson.feelings.filter(filterByDate).map(f => ({ x: new Date(f.timestamp), y: socialFeelingMap[f.feeling] })) : [];
+
+        const datasets = {
+            general: { type: 'line', label: 'Ánimo General', data: state.emotions.filter(filterByDate).map(e => ({ x: new Date(e.timestamp), y: generalEmotionMap[e.emotion] })), borderColor: '#3B82F6', tension: 0.3, yAxisID: 'yEmotions' },
+            social: { type: 'line', label: `Sentimientos (${selectedPerson?.name || 'N/A'})`, data: socialFeelingsData, borderColor: '#EC4899', tension: 0.3, yAxisID: 'yEmotions' },
+            grades: { type: 'scatter', label: 'Calificaciones', data: state.subjects.flatMap(s => s.grades).filter(filterByDate).map(g => ({ x: new Date(g.timestamp), y: g.score, subject: g.subject, name: g.name })), backgroundColor: '#22C55E', radius: 6, hoverRadius: 8, yAxisID: 'yGrades' },
+            events: { type: 'scatter', label: 'Eventos Clave', data: state.events.filter(e => dateFns.isWithinInterval(new Date(e.date), { start: startDate, end: endDate })).map(e => ({ x: new Date(e.date), y: 105, title: e.title, type: e.type })), pointStyle: (ctx) => (!ctx.raw) ? 'circle' : ctx.raw.type === 'examen' ? 'star' : 'rect', backgroundColor: '#F97316', radius: 8, hoverRadius: 10, yAxisID: 'yGrades' }
+        };
+
+        const visibleDatasets = [];
+        document.querySelectorAll('#correlation-chart-toggles input:checked').forEach(cb => { visibleDatasets.push(datasets[cb.dataset.dataset]); });
+
+        correlationChartInstance = new Chart(ctx, {
+            data: { datasets: visibleDatasets },
+            options: {
+                responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+                scales: {
+                    x: { type: 'time', time: { unit: 'day', tooltipFormat: 'dd-MM-yyyy' }, ticks: { color: textColor }, min: startDate, max: endDate },
+                    yEmotions: { position: 'left', min: 0, max: 7, ticks: { color: textColor, stepSize: 1, callback: (v) => Object.keys(socialFeelingMap).find(k => socialFeelingMap[k] === v) || Object.keys(generalEmotionMap).find(k => generalEmotionMap[k] === v) || '' } },
+                    yGrades: { position: 'right', min: 0, max: 110, ticks: { color: textColor }, grid: { drawOnChartArea: false } }
+                },
+                plugins: {
+                    tooltip: { callbacks: { label: function(context) { const dsLabel = context.dataset.label; if (dsLabel === 'Calificaciones') return `${dsLabel}: ${context.raw.y} (${context.raw.name})`; if (dsLabel.startsWith('Eventos')) return `${context.raw.type}: ${context.raw.title}`; return `${dsLabel}: ${context.formattedValue}`; } } }
+                }
+            }
+        });
+    }
+
+    // --- GESTIÓN DE MODALES Y ALERTAS ---
+    
+    function showAlert(title, message, type = 'info') {
+        const iconEl = document.getElementById('alert-modal-icon');
+        const okBtn = document.getElementById('alert-modal-ok-btn');
+        document.getElementById('alert-modal-title').textContent = title;
+        document.getElementById('alert-modal-message').textContent = message;
+        
+        iconEl.className = 'mx-auto mb-4 w-12 h-12 rounded-full flex items-center justify-center text-2xl text-white'; // Reset classes
+        okBtn.className = 'w-full text-white font-bold py-2 px-4 rounded-lg hover:opacity-90';
+
+        switch (type) {
+            case 'success':
+                iconEl.classList.add('bg-green-500');
+                iconEl.innerHTML = '✓';
+                okBtn.classList.add('bg-green-500');
+                break;
+            case 'error':
+                iconEl.classList.add('bg-red-500');
+                iconEl.innerHTML = '✖';
+                okBtn.classList.add('bg-red-500');
+                break;
+            default:
+                iconEl.classList.add('bg-blue-500');
+                iconEl.innerHTML = 'ℹ️';
+                okBtn.classList.add('bg-blue-500');
+        }
+        openModal(modals.alert);
+    }
+
+    function openModal(modalEl) { modalEl.classList.add('is-open'); }
+    function closeModal(modalEl) { modalEl.classList.remove('is-open'); }
+
+    function openTaskModal(taskId=null) {
+        const form = document.getElementById('task-form');
+        form.reset(); document.getElementById('task-id').value = '';
+        if (taskId) {
+            const t = state.tasks.find(t => t.id === taskId);
+            document.getElementById('task-modal-title').textContent = 'Editar Tarea';
+            document.getElementById('task-id').value = t.id;
+            document.getElementById('task-name').value = t.name;
+            document.getElementById('task-subject').value = t.subject;
+            document.getElementById('task-due-date').value = t.dueDate;
+            document.getElementById('task-priority').value = t.priority;
+        } else { document.getElementById('task-modal-title').textContent = 'Añadir Tarea'; document.getElementById('task-priority').value = 3; }
+        openModal(modals.task);
+    }
+    
+    function openGradeModal(subjectId) {
+        document.getElementById('grade-form').reset();
+        document.getElementById('grade-subject-id').value = subjectId;
+        openModal(modals.grade);
+    }
+    
+    function openEventModal(date=null) { document.getElementById('event-form').reset(); if (date) document.getElementById('event-date').value = date; openModal(modals.event); }
+    
+    function openDayDetailsModal(date) {
+        const events = state.events.filter(e => e.date === date);
+        document.getElementById('day-details-title').textContent = new Date(date + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+        document.getElementById('day-events-list').innerHTML = events.length ? events.map(e => `<div class="flex justify-between items-center p-3 bg-[var(--accent)] rounded-lg"><span>${e.title} (${e.type})</span><button class="delete-event-btn p-1 text-red-500" data-id="${e.id}">🗑️</button></div>`).join('') : `<p>No hay eventos.</p>`;
+        openModal(modals.dayDetails);
+    }
+
+
+    // --- CONFIGURACIÓN DE EVENT LISTENERS ---
+    function setupEventListeners() {
+        // Navegación
+        document.getElementById('nav-menu').addEventListener('click', e => { const link = e.target.closest('a'); if (link?.dataset.section) { e.preventDefault(); showSection(link.dataset.section); if (window.innerWidth < 768) navMenu.classList.add('hidden'); } });
+        document.getElementById('mobile-menu-button').addEventListener('click', () => navMenu.classList.toggle('hidden'));
+        
+        // Cerrar modales generales
+        document.querySelectorAll('.cancel-modal-btn').forEach(btn => btn.addEventListener('click', () => closeModal(btn.closest('.modal'))));
+        document.getElementById('alert-modal-ok-btn').addEventListener('click', () => closeModal(modals.alert));
+        document.getElementById('confirm-delete-cancel-btn').addEventListener('click', () => closeModal(modals.confirmDelete));
+
+
+        // Tareas
+        document.getElementById('add-task-btn').addEventListener('click', () => openTaskModal());
+        document.getElementById('task-form').addEventListener('submit', e => { e.preventDefault(); const id = document.getElementById('task-id').value; const data = { name: document.getElementById('task-name').value, subject: document.getElementById('task-subject').value, dueDate: document.getElementById('task-due-date').value, priority: parseInt(document.getElementById('task-priority').value) }; if (id) { const i = state.tasks.findIndex(t => t.id == id); state.tasks[i] = { ...state.tasks[i], ...data }; } else { state.tasks.push({ id: Date.now(), completed: false, ...data }); } saveState(); closeModal(modals.task); renderAll(); });
+        document.getElementById('task-list').addEventListener('click', e => { const t = e.target; if (t.matches('.task-checkbox')) { state.tasks.find(task => task.id === parseInt(t.dataset.id)).completed = t.checked; saveState(); renderTasks(); renderDashboard(); } else { const btn = t.closest('button'); if (btn?.matches('.edit-task-btn')) openTaskModal(parseInt(btn.dataset.id)); else if (btn?.matches('.delete-task-btn')) { state.tasks = state.tasks.filter(task => task.id !== parseInt(btn.dataset.id)); saveState(); renderAll(); } } });
+
+        // Calendario y Eventos
+        document.getElementById('prev-month').addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() - 1); renderCalendar(); });
+        document.getElementById('next-month').addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() + 1); renderCalendar(); });
+        document.getElementById('add-event-btn').addEventListener('click', () => openEventModal());
+        document.getElementById('close-day-details-btn').addEventListener('click', () => closeModal(modals.dayDetails));
+        document.getElementById('calendar-body').addEventListener('click', e => { if (e.target.matches('.calendar-day')) { const d = e.target.dataset.date; if (state.events.some(ev => ev.date === d)) openDayDetailsModal(d); else openEventModal(d); } });
+        document.getElementById('day-events-list').addEventListener('click', e => { const b = e.target.closest('.delete-event-btn'); if (b) { state.events = state.events.filter(ev => ev.id !== parseInt(b.dataset.id)); saveState(); closeModal(modals.dayDetails); renderAll(); } });
+        document.getElementById('event-form').addEventListener('submit', e => { e.preventDefault(); state.events.push({ id: Date.now(), title: document.getElementById('event-title').value, date: document.getElementById('event-date').value, type: document.getElementById('event-type').value }); saveState(); closeModal(modals.event); renderAll(); });
+
+        // Asignaturas y Calificaciones
+        document.getElementById('add-subject-btn').addEventListener('click', () => { const n = prompt('Nombre de la nueva asignatura:'); if (n) { state.subjects.push({ id: Date.now(), name: n, grades: [] }); saveState(); renderAll(); } });
+        document.getElementById('subjects-container').addEventListener('click', e => {
+            const addBtn = e.target.closest('.add-grade-btn'), delBtn = e.target.closest('.delete-subject-btn');
+            if (addBtn) openGradeModal(parseInt(addBtn.dataset.subjectId));
+            else if (delBtn) { state.subjects = state.subjects.filter(s => s.id !== parseInt(delBtn.dataset.subjectId)); saveState(); renderAll(); if(!document.getElementById('analisis').classList.contains('hidden')) renderCorrelationChart(); }
+        });
+        document.getElementById('grade-form').addEventListener('submit', e => {
+            e.preventDefault();
+            const sId = parseInt(document.getElementById('grade-subject-id').value);
+            const name = document.getElementById('grade-name').value;
+            const score = parseFloat(document.getElementById('grade-score').value);
+            state.subjects.find(s => s.id === sId).grades.push({ id: Date.now(), name, score, timestamp: new Date().toISOString() });
+            saveState();
+            renderAll();
+            if(!document.getElementById('analisis').classList.contains('hidden')) renderCorrelationChart();
+            closeModal(modals.grade);
+        });
+
+        // Emoción General
+        document.getElementById('emotion-tracker').addEventListener('click', e => { if (e.target.matches('.emotion-btn')) { document.querySelectorAll('#emotion-tracker .emotion-btn').forEach(b => b.classList.remove('selected')); e.target.classList.add('selected'); selectedGeneralEmotion = e.target.dataset.emotion; } });
+        document.getElementById('save-emotion-btn').addEventListener('click', () => {
+            if (!selectedGeneralEmotion) return showAlert('Error', 'Debes seleccionar una emoción antes de guardar.', 'error');
+            state.emotions.push({ id: Date.now(), emotion: selectedGeneralEmotion, note: document.getElementById('emotion-note').value, timestamp: new Date().toISOString() });
+            saveState();
+            document.querySelectorAll('#emotion-tracker .emotion-btn').forEach(b => b.classList.remove('selected'));
+            document.getElementById('emotion-note').value = '';
+            selectedGeneralEmotion = null;
+            showAlert('Éxito', '¡Emoción registrada correctamente!', 'success');
+            if(!document.getElementById('analisis').classList.contains('hidden')) renderCorrelationChart();
+        });
+
+        // Bienestar Social (Personas)
+        document.getElementById('person-select').addEventListener('change', (e) => {
+            state.selectedPersonId = parseInt(e.target.value);
+            saveState();
+            renderSocial();
+            if (!document.getElementById('analisis').classList.contains('hidden')) renderCorrelationChart();
+        });
+
+        document.getElementById('add-person-btn').addEventListener('click', () => {
+             document.getElementById('add-person-form').reset();
+             openModal(modals.addPerson);
+        });
+
+        document.getElementById('add-person-form').addEventListener('submit', e => {
+            e.preventDefault();
+            const name = document.getElementById('person-name-input').value.trim();
+            if (name) {
+                const newPerson = { id: Date.now(), name, feelings: [] };
+                state.people.push(newPerson);
+                state.selectedPersonId = newPerson.id;
+                saveState();
+                renderSocial();
+                closeModal(modals.addPerson);
+            }
+        });
+
+        document.getElementById('delete-person-btn').addEventListener('click', () => {
+            if (!state.selectedPersonId) return showAlert('Error', 'No hay ninguna persona seleccionada.', 'error');
+            const person = state.people.find(p => p.id === state.selectedPersonId);
+            document.getElementById('confirm-delete-message').textContent = `¿Seguro que quieres eliminar a ${person.name}? Todo su historial se perderá para siempre.`;
+            // Guardamos el ID en el botón de confirmar para saber a quién borrar
+            modals.confirmDelete.dataset.personId = person.id; 
+            openModal(modals.confirmDelete);
+        });
+
+        document.getElementById('confirm-delete-confirm-btn').addEventListener('click', () => {
+            const personIdToDelete = parseInt(modals.confirmDelete.dataset.personId);
+            state.people = state.people.filter(p => p.id !== personIdToDelete);
+            state.selectedPersonId = state.people.length > 0 ? state.people[0].id : null;
+            saveState();
+            renderSocial();
+            if (!document.getElementById('analisis').classList.contains('hidden')) renderCorrelationChart();
+            closeModal(modals.confirmDelete);
+        });
+
+        document.getElementById('person-emotion-tracker').addEventListener('click', e => { if (e.target.matches('.emotion-btn')) { document.querySelectorAll('#person-emotion-tracker .emotion-btn').forEach(b => b.classList.remove('selected')); e.target.classList.add('selected'); selectedPersonEmotion = e.target.dataset.emotion; } });
+        document.getElementById('save-person-emotion-btn').addEventListener('click', () => {
+            if (!selectedPersonEmotion) return showAlert('Error', 'Selecciona un sentimiento.', 'error');
+            if (!state.selectedPersonId) return showAlert('Error', 'Selecciona una persona primero.', 'error');
+            const person = state.people.find(p => p.id === state.selectedPersonId);
+            person.feelings.push({ id: Date.now(), feeling: selectedPersonEmotion, note: document.getElementById('person-emotion-note').value, timestamp: new Date().toISOString() });
+            saveState();
+            document.querySelectorAll('#person-emotion-tracker .emotion-btn').forEach(b => b.classList.remove('selected'));
+            document.getElementById('person-emotion-note').value = '';
+            selectedPersonEmotion = null;
+            showAlert('Éxito', '¡Sentimiento registrado!', 'success');
+            renderSocial();
+            if(!document.getElementById('analisis').classList.contains('hidden')) renderCorrelationChart();
+        });
+
+        // Controles del Gráfico y Temas
+        document.querySelectorAll('.theme-btn').forEach(btn => btn.addEventListener('click', () => applyTheme(btn.dataset.theme)));
+        document.getElementById('correlation-chart-toggles').addEventListener('change', renderCorrelationChart);
+        document.getElementById('correlation-chart-ranges').addEventListener('click', e => { if (e.target.matches('button')) { document.querySelectorAll('#correlation-chart-ranges button').forEach(b => b.classList.remove('active')); e.target.classList.add('active'); renderCorrelationChart(); } });
+    }
+    
+    // --- GESTIÓN DE PWA (Progressive Web App) ---
+    let deferredPrompt;
+    const installButton = document.getElementById('install-pwa-button');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        installButton.style.display = 'block';
+    });
+
+    installButton.addEventListener('click', async () => {
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            deferredPrompt = null;
+            installButton.style.display = 'none';
+        }
+    });
+
+    window.addEventListener('appinstalled', () => {
+        installButton.style.display = 'none';
+        deferredPrompt = null;
+    });
+
+    function applyTheme(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('studyHubTheme', theme);
+        if (document.getElementById('analisis').classList.contains('hidden') === false) {
+            renderCorrelationChart();
+        }
+    }
+
+
+    // --- INICIALIZACIÓN DE LA APLICACIÓN ---
+    const savedTheme = localStorage.getItem('studyHubTheme') || 'light';
+    applyTheme(savedTheme);
+    setupEventListeners();
+    renderAll();
+});
+</script>
+</body>
+</html>
