@@ -1,0 +1,36 @@
+
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Fondo -->
+  <rect width="512" height="512" fill="#2563EB" rx="64"/>
+  
+  <!-- Libro abierto -->
+  <path d="M128 160h256c8.8 0 16 7.2 16 16v240c0 8.8-7.2 16-16 16H128c-8.8 0-16-7.2-16-16V176c0-8.8 7.2-16 16-16z" fill="#FFFFFF"/>
+  
+  <!-- Línea central del libro -->
+  <line x1="256" y1="160" x2="256" y2="432" stroke="#2563EB" stroke-width="4"/>
+  
+  <!-- Líneas de texto izquierda -->
+  <line x1="160" y1="200" x2="240" y2="200" stroke="#2563EB" stroke-width="3" stroke-linecap="round"/>
+  <line x1="160" y1="220" x2="220" y2="220" stroke="#2563EB" stroke-width="3" stroke-linecap="round"/>
+  <line x1="160" y1="240" x2="235" y2="240" stroke="#2563EB" stroke-width="3" stroke-linecap="round"/>
+  <line x1="160" y1="260" x2="210" y2="260" stroke="#2563EB" stroke-width="3" stroke-linecap="round"/>
+  
+  <!-- Líneas de texto derecha -->
+  <line x1="272" y1="200" x2="352" y2="200" stroke="#2563EB" stroke-width="3" stroke-linecap="round"/>
+  <line x1="272" y1="220" x2="332" y2="220" stroke="#2563EB" stroke-width="3" stroke-linecap="round"/>
+  <line x1="272" y1="240" x2="347" y2="240" stroke="#2563EB" stroke-width="3" stroke-linecap="round"/>
+  <line x1="272" y1="260" x2="322" y2="260" stroke="#2563EB" stroke-width="3" stroke-linecap="round"/>
+  
+  <!-- Icono de tareas (checkbox) -->
+  <rect x="160" y="320" width="24" height="24" fill="none" stroke="#2563EB" stroke-width="3" rx="4"/>
+  <path d="M168 332l4 4 8-8" fill="none" stroke="#2563EB" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Icono de calendario -->
+  <rect x="300" y="320" width="32" height="28" fill="none" stroke="#2563EB" stroke-width="3" rx="4"/>
+  <line x1="308" y1="316" x2="308" y2="328" stroke="#2563EB" stroke-width="3" stroke-linecap="round"/>
+  <line x1="324" y1="316" x2="324" y2="328" stroke="#2563EB" stroke-width="3" stroke-linecap="round"/>
+  <line x1="304" y1="336" x2="328" y2="336" stroke="#2563EB" stroke-width="2"/>
+  
+  <!-- Texto EstudioPro -->
+  <text x="256" y="480" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="bold" text-anchor="middle" fill="#FFFFFF">EstudioPro</text>
+</svg>

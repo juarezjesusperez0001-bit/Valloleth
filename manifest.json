@@ -2,20 +2,26 @@
   "name": "EstudioPro",
   "short_name": "EstudioPro",
   "description": "Tu centro de estudios personal para organizar tareas, calendario, calificaciones y bienestar.",
-  "start_url": ".",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#F8F7F4",
   "theme_color": "#2563EB",
+  "orientation": "portrait-primary",
+  "categories": ["education", "productivity"],
+  "lang": "es",
   "icons": [
     {
       "src": "images/icon-192x192.png",
       "type": "image/png",
-      "sizes": "192x192"
+      "sizes": "192x192",
+      "purpose": "any maskable"
     },
     {
       "src": "images/icon-512x512.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "any maskable"
     }
   ]
 }

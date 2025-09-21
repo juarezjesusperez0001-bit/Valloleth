@@ -1,0 +1,72 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Generador de Iconos PWA</title>
+</head>
+<body>
+    <h2>Generador de Iconos para EstudioPro PWA</h2>
+    <p>Abrir en el navegador para generar los iconos PNG necesarios</p>
+    
+    <canvas id="canvas192" width="192" height="192" style="border: 1px solid #ccc; margin: 10px;"></canvas>
+    <canvas id="canvas512" width="512" height="512" style="border: 1px solid #ccc; margin: 10px;"></canvas>
+    
+    <div>
+        <button onclick="downloadIcon(192)">Descargar 192x192</button>
+        <button onclick="downloadIcon(512)">Descargar 512x512</button>
+    </div>
+
+    <script>
+        const svgString = `<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+          <rect width="512" height="512" fill="#2563EB" rx="64"/>
+          <path d="M128 160h256c8.8 0 16 7.2 16 16v240c0 8.8-7.2 16-16 16H128c-8.8 0-16-7.2-16-16V176c0-8.8 7.2-16 16-16z" fill="#FFFFFF"/>
+          <line x1="256" y1="160" x2="256" y2="432" stroke="#2563EB" stroke-width="4"/>
+          <line x1="160" y1="200" x2="240" y2="200" stroke="#2563EB" stroke-width="3" stroke-linecap="round"/>
+          <line x1="160" y1="220" x2="220" y2="220" stroke="#2563EB" stroke-width="3" stroke-linecap="round"/>
+          <line x1="160" y1="240" x2="235" y2="240" stroke="#2563EB" stroke-width="3" stroke-linecap="round"/>
+          <line x1="160" y1="260" x2="210" y2="260" stroke="#2563EB" stroke-width="3" stroke-linecap="round"/>
+          <line x1="272" y1="200" x2="352" y2="200" stroke="#2563EB" stroke-width="3" stroke-linecap="round"/>
+          <line x1="272" y1="220" x2="332" y2="220" stroke="#2563EB" stroke-width="3" stroke-linecap="round"/>
+          <line x1="272" y1="240" x2="347" y2="240" stroke="#2563EB" stroke-width="3" stroke-linecap="round"/>
+          <line x1="272" y1="260" x2="322" y2="260" stroke="#2563EB" stroke-width="3" stroke-linecap="round"/>
+          <rect x="160" y="320" width="24" height="24" fill="none" stroke="#2563EB" stroke-width="3" rx="4"/>
+          <path d="M168 332l4 4 8-8" fill="none" stroke="#2563EB" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          <rect x="300" y="320" width="32" height="28" fill="none" stroke="#2563EB" stroke-width="3" rx="4"/>
+          <line x1="308" y1="316" x2="308" y2="328" stroke="#2563EB" stroke-width="3" stroke-linecap="round"/>
+          <line x1="324" y1="316" x2="324" y2="328" stroke="#2563EB" stroke-width="3" stroke-linecap="round"/>
+          <line x1="304" y1="336" x2="328" y2="336" stroke="#2563EB" stroke-width="2"/>
+          <text x="256" y="480" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="bold" text-anchor="middle" fill="#FFFFFF">EstudioPro</text>
+        </svg>`;
+
+        function generateIcon(size) {
+            const canvas = document.getElementById(`canvas${size}`);
+            const ctx = canvas.getContext('2d');
+            
+            const img = new Image();
+            const svg = new Blob([svgString], {type: 'image/svg+xml'});
+            const url = URL.createObjectURL(svg);
+            
+            img.onload = function() {
+                ctx.drawImage(img, 0, 0, size, size);
+                URL.revokeObjectURL(url);
+            };
+            
+            img.src = url;
+        }
+
+        function downloadIcon(size) {
+            const canvas = document.getElementById(`canvas${size}`);
+            const link = document.createElement('a');
+            link.download = `icon-${size}x${size}.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+
+        // Generar iconos al cargar
+        window.onload = function() {
+            generateIcon(192);
+            generateIcon(512);
+        };
+    </script>
+</body>
+</html>
